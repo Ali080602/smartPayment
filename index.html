@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Fees & Admit Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden">
+        
+        <div class="bg-blue-800 p-6 text-center text-white">
+            <h1 class="text-2xl font-bold tracking-wide">Student Portal</h1>
+            <div id="loadingBox" class="flex justify-center items-center mt-2">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-blue-200 text-sm" id="loadingText">Loading student database...</p>
+            </div>
+        </div>
+
+        <div id="mainContent" class="opacity-50 pointer-events-none transition-opacity duration-300">
+            <div class="flex border-b">
+                <button onclick="switchTab('pay')" id="tab-pay" class="w-1/2 py-4 font-semibold text-blue-800 border-b-2 border-blue-800">Submit Payment</button>
+                <button onclick="switchTab('download')" id="tab-download" class="w-1/2 py-4 font-semibold text-gray-500 border-b-2 border-transparent">Download Admit</button>
+            </div>
+
+            <div class="p-8">
+                <div id="section-pay" class="block">
+                    <form id="paymentForm" class="space-y-5">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Select Class</label>
+                                <select id="classSelect" required onchange="filterStudents()" class="mt-1 w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-800 outline-none bg-white">
+                                    <option value="" disabled selected>Select Class first</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Select Student</label>
+                                <select id="studentSelect" required onchange="updatePaymentZone()" disabled class="mt-1 w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-800 outline-none bg-gray-50 disabled:opacity-50">
+                                    <option value="" disabled selected>Select Student Name</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Guardian WhatsApp No.</label>
+                                <input type="tel" id="guardianPhone" required pattern="[0-9]{10}" placeholder="10-digit number" class="mt-1 w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-800 outline-none bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Fee Month / Purpose</label>
+                                <select id="feeMonth" required onchange="updatePaymentZone()" class="mt-1 w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-800 outline-none bg-white">
+                                    <option value="" disabled selected>Select Month</option>
+                                    <option value="January">January</option>
+                                    <option value="February">February</option>
+                                    <option value="March">March</option>
+                                    <option value="April">April</option>
+                                    <option value="May">May</option>
+                                    <option value="June">June</option>
+                                    <option value="July">July</option>
+                                    <option value="August">August</option>
+                                    <option value="September">September</option>
+                                    <option value="October">October</option>
+                                    <option value="November">November</option>
+                                    <option value="December">December</option>
+                                    <option value="Others">Others / Arrears</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Student ID</label>
+                                <input type="text" id="displayId" readonly class="mt-1 w-full bg-transparent font-semibold text-gray-800 outline-none" placeholder="Auto-filled">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Fee Amount</label>
+                                <div class="flex items-center mt-1">
+                                    <span class="text-gray-800 font-bold mr-1">₹</span>
+                                    <input type="text" id="displayAmount" readonly class="w-full bg-transparent font-bold text-blue-800 outline-none" placeholder="Auto-filled">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="dynamicPaymentZone" class="hidden mt-4 text-center bg-blue-50 p-6 rounded-xl border border-blue-100">
+                            <h3 class="text-blue-900 font-bold mb-1">Payment Ready</h3>
+                            <p class="text-3xl font-bold text-blue-900 mb-4">₹<span id="zoneAmountDisplay">0</span></p>
+                            <p class="text-xs text-gray-500">You will be redirected to Razorpay to complete your secure transaction via UPI, Card, or Netbanking.</p>
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="w-full flex justify-center items-center bg-blue-800 text-white font-bold py-4 rounded-lg hover:bg-blue-900 transition mt-4 disabled:opacity-75 disabled:cursor-not-allowed shadow-md">
+                            <svg id="submitSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span id="submitBtnText">Proceed to Secure Payment</span>
+                        </button>
+                        
+                        <div id="payMessage" class="hidden mt-4 p-4 text-center rounded-lg"></div>
+                    </form>
+                </div>
+
+                <div id="section-download" class="hidden">
+                    <div class="text-center mb-6">
+                        <p class="text-sm text-gray-600">Enter your Student ID <span class="font-bold">or</span> Phone Number to check status.</p>
+                    </div>
+                    <div class="space-y-4">
+                        <input type="text" id="checkSearchKey" placeholder="e.g. S101 or 9876543210" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-800 outline-none">
+                        
+                        <button onclick="checkStatus()" id="checkBtn" class="w-full flex justify-center items-center bg-gray-800 text-white font-bold py-3 rounded-lg hover:bg-gray-900 transition disabled:opacity-75 disabled:cursor-not-allowed">
+                            <svg id="checkSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span id="checkBtnText">Check Status</span>
+                        </button>
+
+                        <div id="resultArea" class="mt-6 p-4 rounded-lg hidden text-center border">
+                            <p id="resultStatus" class="font-bold text-lg"></p>
+                            <div id="resultDesc" class="text-sm mt-2 text-gray-700"></div>
+                            <a id="downloadLink" href="#" target="_blank" class="hidden inline-block mt-4 px-6 py-2 bg-green-600 text-white font-semibold rounded shadow hover:bg-green-700 transition">Download Admit Card PDF</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxtUQT_z6xNLR9RO1Kyj4JTfDreecxWjzK4Enf4BPeqYrCMC2EhEy0nAe4zYikaESw8tQ/exec"; // Put your newly deployed GAS URL here
+        const ADMIN_PHONE = "+919876543210"; 
+
+        let masterStudentList = [];
+        let countdownTimer; 
+
+        window.onload = async function() {
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getStudents`);
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    masterStudentList = result.data;
+                    const classes = [...new Set(masterStudentList.map(item => item.classLevel))];
+                    const classSelect = document.getElementById('classSelect');
+                    
+                    classes.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c;
+                        opt.textContent = c;
+                        classSelect.appendChild(opt);
+                    });
+
+                    document.getElementById('loadingBox').innerHTML = '<p class="text-blue-200 text-sm">Submit Fees & Download Admit Card</p>';
+                    document.getElementById('mainContent').classList.remove('opacity-50', 'pointer-events-none');
+                }
+            } catch(e) {
+                document.getElementById('loadingBox').innerHTML = '<p class="text-red-200 text-sm font-bold">Error loading database. Please refresh.</p>';
+            }
+        };
+
+        function filterStudents() {
+            const selectedClass = document.getElementById('classSelect').value;
+            const studentSelect = document.getElementById('studentSelect');
+            
+            studentSelect.innerHTML = '<option value="" disabled selected>Select Student Name</option>';
+            document.getElementById('displayId').value = "";
+            document.getElementById('displayAmount').value = "";
+            document.getElementById('dynamicPaymentZone').classList.add('hidden');
+            
+            const filtered = masterStudentList.filter(s => s.classLevel === selectedClass);
+            filtered.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id; 
+                opt.textContent = s.name;
+                studentSelect.appendChild(opt);
+            });
+            
+            studentSelect.disabled = false;
+            studentSelect.classList.remove('bg-gray-50');
+            updatePaymentZone(); 
+        }
+
+        // --- SMART PAID/PENDING MONTHS ---
+        function updatePaymentZone() {
+            const selectedId = document.getElementById('studentSelect').value;
+            const monthSelect = document.getElementById('feeMonth');
+            const selectedMonth = monthSelect.value;
+            
+            if(!selectedId) return; 
+            
+            const student = masterStudentList.find(s => s.id.toString() === selectedId.toString());
+            
+            if(student) {
+                Array.from(monthSelect.options).forEach(opt => {
+                    if (opt.value !== "") {
+                        opt.disabled = false;
+                        opt.text = opt.value; 
+                        opt.style.color = ""; 
+                        opt.style.backgroundColor = ""; 
+                    }
+                });
+
+                let attemptedDuplicate = false;
+                if (student.paidMonths && Object.keys(student.paidMonths).length > 0) {
+                    Array.from(monthSelect.options).forEach(opt => {
+                        const monthStatus = student.paidMonths[opt.value];
+                        
+                        if (monthStatus) {
+                            opt.disabled = true;
+                            if (monthStatus === "Verified") {
+                                opt.text = `✅ ${opt.value} (Verified)`;
+                                opt.style.color = "#15803d"; 
+                                opt.style.backgroundColor = "#f0fdf4"; 
+                            } else {
+                                opt.text = `⏳ ${opt.value} (Pending)`;
+                                opt.style.color = "#b45309"; 
+                                opt.style.backgroundColor = "#fffbeb"; 
+                            }
+                            if (opt.value === selectedMonth) { attemptedDuplicate = true; }
+                        }
+                    });
+                }
+
+                if (attemptedDuplicate) {
+                    monthSelect.value = ""; 
+                    document.getElementById('dynamicPaymentZone').classList.add('hidden');
+                    alert("This student has already paid (or is pending verification) for that month. Please select a different fee purpose.");
+                    return; 
+                }
+
+                document.getElementById('displayId').value = student.id;
+                document.getElementById('displayAmount').value = student.fee;
+                
+                if (monthSelect.value !== "") {
+                    document.getElementById('zoneAmountDisplay').innerText = student.fee;
+                    document.getElementById('dynamicPaymentZone').classList.remove('hidden');
+                } else {
+                    document.getElementById('dynamicPaymentZone').classList.add('hidden');
+                }
+            }
+        }
+
+        // --- FETCH RAZORPAY LINK & REDIRECT ---
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const studentId = document.getElementById('displayId').value;
+            
+            if (!studentId) return alert("Please select a student.");
+
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('submitBtnText');
+            const spinner = document.getElementById('submitSpinner');
+            const msg = document.getElementById('payMessage');
+            
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            btnText.innerText = "Generating Secure Link...";
+
+            const studentSelect = document.getElementById('studentSelect');
+            // Clean the name (removes the " (Pending)" tag if it accidentally gets caught)
+            const cleanName = studentSelect.options[studentSelect.selectedIndex].text.replace(/ \((Paid|Pending)\)/, '').replace(/✅ |⏳ /, '');
+            const selectedMonth = document.getElementById('feeMonth').value;
+                
+            const payload = {
+                action: "createLink",
+                studentId: studentId,
+                studentName: cleanName,
+                phone: document.getElementById('guardianPhone').value, 
+                classLevel: document.getElementById('classSelect').value,
+                feeMonth: selectedMonth,
+                amount: document.getElementById('displayAmount').value
+            };
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload) // Standard POST for Razorpay integration
+                });
+                
+                const data = await response.json();
+
+                if (data.status === "success" && data.paymentUrl) {
+                    btnText.innerText = "Redirecting to Razorpay...";
+                    
+                    // Immediately lock it locally to prevent double clicks
+                    const student = masterStudentList.find(s => s.id.toString() === studentId.toString());
+                    if (student) { 
+                        if (!student.paidMonths) student.paidMonths = {};
+                        student.paidMonths[selectedMonth] = 'Pending'; 
+                    }
+                    
+                    // Magic happens here: Redirect user to the payment gateway
+                    window.location.href = data.paymentUrl;
+                    
+                } else {
+                    throw new Error("Failed to generate link.");
+                }
+
+            } catch (err) {
+                spinner.classList.add('hidden');
+                btnText.innerText = "Proceed to Secure Payment";
+                btn.disabled = false;
+                msg.innerHTML = "<p class='font-bold text-red-600'>Error connecting to payment gateway. Please try again.</p>";
+                msg.classList.remove('hidden', 'bg-green-50', 'border-green-200');
+                msg.classList.add('bg-red-50', 'border-red-200');
+            }
+        });
+
+        // --- CHECK STATUS ---
+        async function checkStatus() {
+            const searchKey = document.getElementById('checkSearchKey').value.trim();
+            if(!searchKey) return alert("Enter Student ID or Phone Number");
+            
+            const btn = document.getElementById('checkBtn');
+            const btnText = document.getElementById('checkBtnText');
+            const spinner = document.getElementById('checkSpinner');
+            const resultArea = document.getElementById('resultArea');
+            
+            clearInterval(countdownTimer);
+
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            btnText.innerText = "Checking Database...";
+            
+            resultArea.classList.add('hidden');
+            document.getElementById('downloadLink').classList.add('hidden');
+            
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=checkStatus&searchKey=${encodeURIComponent(searchKey)}`);
+                const data = await response.json();
+                resultArea.classList.remove('hidden');
+
+                if (data.status === "not_found") {
+                    resultArea.className = "mt-6 p-4 rounded-lg border bg-red-50 text-red-700";
+                    document.getElementById('resultStatus').textContent = "Not Found";
+                    document.getElementById('resultDesc').innerHTML = "No payment submission found for this ID or Phone Number.";
+                
+                } else if (data.paymentStatus === "Pending") {
+                    const submitTime = new Date(data.timestamp).getTime();
+                    const targetTime = submitTime + (60 * 60 * 1000); 
+                    const now = new Date().getTime();
+                    const timeDifference = targetTime - now;
+
+                    if (timeDifference <= 0) {
+                        resultArea.className = "mt-6 p-4 rounded-lg border bg-orange-50 border-orange-200";
+                        document.getElementById('resultStatus').textContent = "Verification Delayed";
+                        document.getElementById('resultStatus').className = "font-bold text-lg text-orange-700";
+                        document.getElementById('resultDesc').innerHTML = `
+                            <p class="text-sm text-gray-700 mb-4">It has been over an hour since submission. If you completed the Razorpay checkout, please contact admin.</p>
+                            <div class="flex justify-center gap-3">
+                                <a href="tel:${ADMIN_PHONE}" class="flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-700 transition">📞 Call</a>
+                                <a href="https://wa.me/${ADMIN_PHONE.replace('+', '')}" target="_blank" class="flex items-center px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-lg shadow hover:bg-green-600 transition">💬 WhatsApp</a>
+                            </div>
+                        `;
+                    } else {
+                        resultArea.className = "mt-6 p-4 rounded-lg border bg-yellow-50 text-yellow-700";
+                        document.getElementById('resultStatus').textContent = "Pending Verification";
+                        document.getElementById('resultStatus').className = "font-bold text-lg text-yellow-700";
+                        
+                        document.getElementById('resultDesc').innerHTML = `
+                            <p class="text-sm text-gray-700 mb-2">Awaiting confirmation from payment gateway.</p>
+                            <div class="mt-3 p-3 bg-yellow-100/50 rounded-lg border border-yellow-200 flex flex-col items-center">
+                                <p class="text-xs font-semibold text-yellow-800 uppercase tracking-wide mb-1">Estimated Maximum Wait</p>
+                                <div id="countdownClock" class="text-yellow-800 font-medium tabular-nums text-lg flex items-center">
+                                    <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-yellow-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Calculating...
+                                </div>
+                            </div>
+                        `;
+
+                        countdownTimer = setInterval(function() {
+                            const currentTime = new Date().getTime();
+                            const distance = targetTime - currentTime;
+
+                            if (distance < 0) {
+                                clearInterval(countdownTimer);
+                                document.getElementById('countdownClock').innerHTML = "Please click 'Check Status' again.";
+                                return;
+                            }
+
+                            const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((distance % (1000 * 60)) / 1000);
+                            const displaySeconds = s < 10 ? "0" + s : s;
+
+                            document.getElementById('countdownClock').innerHTML = `
+                                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-yellow-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="font-bold text-2xl">${m}</span>m <span class="font-bold text-2xl">${displaySeconds}</span>s
+                            `;
+                        }, 1000);
+                    }
+
+                } else if (data.paymentStatus === "Verified") {
+                    resultArea.className = "mt-6 p-4 rounded-lg border bg-green-50 text-green-700 flex flex-col items-center";
+                    document.getElementById('resultStatus').innerHTML = `
+                        <div class="flex items-center justify-center">
+                            <svg class="w-6 h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Verified!
+                        </div>
+                    `;
+                    document.getElementById('resultStatus').className = "font-bold text-lg text-green-700 w-full text-center";
+                    document.getElementById('resultDesc').innerHTML = "Your admit card is ready.";
+                    if (data.admitUrl) {
+                        const link = document.getElementById('downloadLink');
+                        link.href = data.admitUrl;
+                        link.classList.remove('hidden');
+                    }
+                }
+            } catch (err) { 
+                alert("Error connecting to server. Please try again."); 
+            } finally { 
+                spinner.classList.add('hidden');
+                btnText.innerText = "Check Status";
+                btn.disabled = false; 
+            }
+        }
+
+        function switchTab(tab) {
+            document.getElementById('section-pay').classList.toggle('hidden', tab !== 'pay');
+            document.getElementById('section-download').classList.toggle('hidden', tab !== 'download');
+            document.getElementById('tab-pay').className = tab === 'pay' ? 'w-1/2 py-4 font-semibold text-blue-800 border-b-2 border-blue-800' : 'w-1/2 py-4 font-semibold text-gray-500 border-b-2 border-transparent';
+            document.getElementById('tab-download').className = tab === 'download' ? 'w-1/2 py-4 font-semibold text-blue-800 border-b-2 border-blue-800' : 'w-1/2 py-4 font-semibold text-gray-500 border-b-2 border-transparent';
+            clearInterval(countdownTimer);
+        }
+    </script>
+</body>
+</html>
